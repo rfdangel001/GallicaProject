@@ -3,7 +3,7 @@
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
 //               Last entry : June 22 2013
-// DESCRIPTION : Operations on real vectors matrices.
+// DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
 #pragma once

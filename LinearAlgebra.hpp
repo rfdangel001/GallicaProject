@@ -1058,7 +1058,7 @@ Matrix pow ( Matrix base, int exponent )
 }
 
 
-double scalarProduct ( Vector leftTerm, Vector rightTerm )
+double scalarProduct ( const Vector& leftTerm, const Vector& rightTerm )
 {
 	if ( leftTerm.getDimension() != rightTerm.getDimension() )
 		throw LinAlgError(VecErr::INCOMPATIBLE);
@@ -1071,7 +1071,7 @@ double scalarProduct ( Vector leftTerm, Vector rightTerm )
 }
 
 
-Vector crossProduct ( Vector leftTerm, Vector rightTerm )
+Vector crossProduct ( const Vector& leftTerm, const Vector& rightTerm )
 {
 	if ( leftTerm.getDimension() != 3 or rightTerm.getDimension() != 3 )
 		throw LinAlgError(VecErr::NOT_3D);

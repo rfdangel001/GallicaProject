@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra_Errors.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : May 29 2013
-//               Last entry : June 22 2013
+//               Last entry : June 25 2013
 // DESCRIPTION : Exception types and handlers for "LinearAlgebra.hpp".
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -18,14 +18,15 @@ using namespace std;
 
 namespace MatErr
 {
-  enum Code {CAST,
+	enum Code {CAST,
 			   HEIGHT,
 			   WIDTH,
 			   ROW,
 			   COLUMN,
 			   NOT_SQUARE,
 			   SINGULAR,
-			   INCOMPATIBLE,};
+			   INCOMPATIBLE,
+			   VECTORS_DIMENSIONS};
 
 	const string messages[] = {"Casting error.",
 							   "Invalid height.",
@@ -34,7 +35,8 @@ namespace MatErr
 							   "Column subscript out of range."
 							   "Not square matrix.",
 							   "Singular matrix (not invertible).",
-							   "Incompatible operands."};
+							   "Incompatible operands.",
+							   "Column vectors not the same dimension."};
 }
 
 namespace VecErr
@@ -47,7 +49,7 @@ namespace VecErr
 	
 	const string messages[] = {"Casting error.",
 							   "Invalid dimension.",
-							   "Element subscript out of range",
+							   "Element subscript out of range.",
 							   "Incompatible operands.",
 							   "Not a 3D vector."};
 }

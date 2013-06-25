@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
-//               Last entry : June 24 2013
+//               Last entry : June 25 2013
 // DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -34,6 +34,10 @@ using namespace std;
 
 //{ Classes
 
+// Forward declarations
+class Matrix; class Vector;
+
+
 class Matrix
 {
 public:
@@ -43,6 +47,8 @@ public:
 	Matrix ( initializer_list<initializer_list<double>> );
 	Matrix ( int, int, string, double );
 	Matrix ( const Matrix& );
+	Matrix ( const Vector& );
+	Matrix ( initializer_list<Vector> );
 	~Matrix ( );
 	
 	// Modifying methods
@@ -225,7 +231,7 @@ Matrix::Matrix ( int initHeight, int initWidth, double initValue = 0.0 )
 Matrix::Matrix ( initializer_list<initializer_list<double>> initValuesList )
 {	
 	height_ = initValuesList.size();
-	width_ = (*initValuesList.begin()).size();
+	width_ = initValuesList.begin()->size();
 	
 	array_ = new double*[height_];
 	for ( int i = 0; i < height_; i ++ ) 
@@ -290,6 +296,44 @@ Matrix::Matrix ( const Matrix& model )
 	for ( int i = 0; i < height_; i ++ )
 		for ( int j = 0; j < width_; j ++ )
 			array_[i][j] = model.array_[i][j];
+}
+
+
+Matrix::Matrix ( const Vector& modelVector )
+{
+	height_ = modelVector.getDimension();
+	width_ = 1;
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ ) {
+		array_[i] = new double;
+		
+		array_[i][0] = modelVector[i];
+	}
+}
+
+
+Matrix::Matrix ( initializer_list<Vector> initVectorsList )
+{
+	int matrixHeight = initVectorsList.begin()->getDimension();
+	for ( Vector columnVector : initVectorsList )
+		if ( columnVector.getDimension() != matrixHeight )
+			throw LinAlgError(MatErr::VECTORS_DIMENSIONS);
+	
+	height_ = matrixHeight;
+	width_ = initVectorsList.size();
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
+	
+	int i = 0;
+	for ( Vector columnVector : initVectorsList ) {
+		for ( int j = 0; j < height_; j ++ )
+			array_[j][i] = columnVector[j];
+		
+		i ++;
+	}
 }
 
 

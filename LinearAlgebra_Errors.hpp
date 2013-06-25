@@ -18,7 +18,7 @@ using namespace std;
 
 namespace MatErr
 {
-	enum Code {CAST,
+	enum Code {CAST = 0,
 			   HEIGHT,
 			   WIDTH,
 			   ROW,
@@ -31,8 +31,8 @@ namespace MatErr
 	const string messages[] = {"Casting error.",
 							   "Invalid height.",
 							   "Invalid width.",
-							   "Row subscript out of range."
-							   "Column subscript out of range."
+							   "Row subscript out of range.",
+							   "Column subscript out of range.",
 							   "Not square matrix.",
 							   "Singular matrix (not invertible).",
 							   "Incompatible operands.",
@@ -41,7 +41,7 @@ namespace MatErr
 
 namespace VecErr
 {
-	enum Code {CAST,
+	enum Code {CAST = 0,
 			   DIMENSION,
 			   ELEMENT,
 			   INCOMPATIBLE,
@@ -62,7 +62,7 @@ public:
 	// Constructors
 	LinAlgError ( MatErr::Code errorCode )
 				{ errorType_ = "Matrix";
-				 errorMessage_ = MatErr::messages[errorCode]; }
+				  errorMessage_ = MatErr::messages[errorCode]; }
 	LinAlgError ( VecErr::Code errorCode )
 				{ errorType_ = "Vector";
 				  errorMessage_ = VecErr::messages[errorCode]; }

@@ -19,8 +19,8 @@ using namespace std;
 #include <sstream>
 #include <initializer_list>
 
-#include "MathParser.hpp"
-#include "LinearAlgebra_Errors.hpp"
+#include "MathParser.hpp"  // To read numbers as fractions in input stream.
+#include "LinearAlgebra_Errors.hpp"  // Exception handler.
 
 //}
 

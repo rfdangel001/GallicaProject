@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
-//               Last entry : June 25 2013
+//               Last entry : June 27 2013
 // DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -29,6 +29,8 @@ using namespace std;
 
 //{ Constants
 
+enum MatrixType {IDENTITY, DIAGONAL, TRIANGULAR_UP, TRIANGULAR_DOWN };
+
 //}
 
 
@@ -43,9 +45,9 @@ class Matrix
 public:
   // Constructors and destructor
 	Matrix ( );
-	Matrix ( int, int, double );
+	Matrix ( int, int, double = 0.0 );
+	Matrix ( int, MatrixType, double = 0.0 );
 	Matrix ( initializer_list<initializer_list<double>> );
-	Matrix ( int, int, string, double );
 	Matrix ( const Matrix& );
 	Matrix ( const Vector& );
 	Matrix ( initializer_list<Vector> );
@@ -55,64 +57,68 @@ public:
 	void read ( istream& );
 	void fill ( double );
 	void resize ( int, int );
+	void transpose ( );
+	void inverse ( );
+	void gaussElimination ( );
 	
 	// Non-modifying methods
 	   int getHeight ( )  {
-			  return height_; }
+	          return height_; }
 	   int getWidth ( )  {
-			  return width_; }
+	          return width_; }
 	  void print ( ostream& );
-	Matrix transpose ( );
-	Matrix inverse ( );
 	Matrix submatrix ( int, int );
-	Matrix gaussElimination ( );
 	Matrix cofactors ( );
 	double ruleOfSarrus ( );
 	double determinant ( );
+	double trace ( );
 	
 	// Proxy class used to check subscript errors with matrix operator [].
 	class Proxy
 	{
 	public:
 		Proxy ( double* matrixRow, int width )  {
-			     row_ = matrixRow; width_ = width; }
+		         row_ = matrixRow; width_ = width; }
 		
 		double& operator [] ( int column )  {
-				   if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
-				   return row_[column]; }
+		           if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
+		           return row_[column]; }
 		 double operator [] ( int column ) const  {
-				   if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
-				   return row_[column]; }
+		           if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
+		           return row_[column]; }
 	
 	protected:
+		    int width_;
 		double* row_;
-			int width_;
 	};
 	
 	// Operators
 	  Proxy operator [] ( int row )  {
-			   if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
-			   return Proxy(array_[row], width_); }
+	           if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
+	           return Proxy(array_[row], width_); }
 	  Proxy operator [] ( int row ) const  {
-			   if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
-			   return Proxy(array_[row], width_); }
-	   bool operator == ( const Matrix& );
-	   bool operator != ( const Matrix& );
-	 Matrix operator - ( );
+	           if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
+	           return Proxy(array_[row], width_); }
+	   bool operator == ( const Matrix& ) const;
+	   bool operator != ( const Matrix& ) const;
+	 Matrix operator - ( ) const;
 	 Matrix operator + ( const Matrix& ) const;
 	 Matrix operator - ( const Matrix& ) const;
 	 Matrix operator * ( const Matrix& ) const;
 	 Matrix operator * ( double ) const;
+	 Matrix operator / ( double ) const;
 	Matrix& operator = ( const Matrix& );
 	Matrix& operator = ( initializer_list<initializer_list<double>> );
 	Matrix& operator += ( const Matrix& );
 	Matrix& operator -= ( const Matrix& );
 	Matrix& operator *= ( const Matrix& );
+	Matrix& operator *= ( double );
+	Matrix& operator /= ( double );
 
 protected:
 	// Attributes
-		 int height_;
-		 int width_;
+	     int height_;
+	     int width_;
 	double** array_;
 };
 
@@ -122,31 +128,33 @@ class Vector
 public:
 	// Constructors and destructor
 	Vector ( );
-	Vector ( int, double );
+	Vector ( int, double = 0.0);
 	Vector ( initializer_list<double> );
 	Vector ( const Vector& );
-	~Vector ( );
+	~Vector ( )  {
+	           delete []array_; }
 	
 	// Modifying methods
 	void read ( istream& );
 	void fill ( double );
 	void resize ( int );
+	void normalise ( );
 	
 	// Non-modifying methods
 	   int getDimension ( ) const  {
-			  return dimension_; }
+	          return dimension_; }
 	  void print ( ostream& );
 	double magnitude ( );
-	Vector normalise ( );
-	Matrix getAsMatrix ( );
 	
 	// Operators
 	double& operator [] ( int element )  {
-			   if ( element >= dimension_ ) throw LinAlgError(VecErr::ELEMENT);
-			   return array_[element]; }
+	           if ( element >= dimension_ ) 
+	               throw LinAlgError(VecErr::ELEMENT);
+	           return array_[element]; }
 	 double operator [] ( int element ) const  {
-			   if ( element >= dimension_ ) throw LinAlgError(VecErr::ELEMENT);
-			   return array_[element]; }
+	           if ( element >= dimension_ )
+	               throw LinAlgError(VecErr::ELEMENT);
+	           return array_[element]; }
 	   bool operator == ( const Vector& );
 	   bool operator != ( const Vector& );
 	 Vector operator - ( );
@@ -172,17 +180,19 @@ protected:
 
 //{ Functions
 
-Matrix identity ( int );
-
 Matrix pow ( const Matrix&, int );
 
 inline
 Matrix operator * ( double scalarTerm, const Matrix& matrixTerm )
-{ return matrixTerm * scalarTerm; }
+{
+	return matrixTerm * scalarTerm;
+}
 
 inline
 Vector operator * ( double scalarTerm, const Vector& vectorTerm )
-{ return vectorTerm * scalarTerm; }
+{
+	return vectorTerm * scalarTerm;
+}
 
 double scalarProduct ( const Vector&, const Vector& );
 
@@ -201,20 +211,18 @@ Vector crossProduct ( const Vector&, const Vector& );
 
 Matrix::Matrix ( )
 {
-	height_ = 1;
-	width_ = 1;
+	height_ = 0;
+	width_ = 0;
 	
-	array_ = new double*[1];
-	array_[0] = new double[1];
-	array_[0][0] = 0.0;
+	array_ = NULL;
 }
 
 
-Matrix::Matrix ( int initHeight, int initWidth, double initValue = 0.0 )
+Matrix::Matrix ( int initHeight, int initWidth, double initValue )
 {
-	if ( initHeight < 0 )
+	if ( initHeight <= 0 )
 		throw LinAlgError(MatErr::HEIGHT);
-	if ( initWidth < 0 )
+	if ( initWidth <= 0 )
 		throw LinAlgError(MatErr::WIDTH);
 	
 	height_ = initHeight;
@@ -228,8 +236,43 @@ Matrix::Matrix ( int initHeight, int initWidth, double initValue = 0.0 )
 }
 
 
+Matrix::Matrix ( int initOrder, MatrixType type, double initValue )
+{
+	if ( initOrder <= 0 )
+		throw LinAlgError(MatErr::HEIGHT);
+	
+	height_ = width_ = initOrder;
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			array_[i][j] = 0.0;
+	
+	if ( type == IDENTITY )
+		for ( int i = 0; i < height_; i ++ )
+			array_[i][i] = 1.0;
+	
+	if ( type == DIAGONAL )
+		for ( int i = 0; i < height_; i ++ )
+			array_[i][i] = initValue;
+	
+	if ( type == TRIANGULAR_UP )
+		for ( int i = 0; i < height_; i ++ )
+			for ( int j = i; j < width_; j ++ )
+				array_[i][j] = initValue;
+	
+	if ( type == TRIANGULAR_DOWN )
+		for ( int i = 0; i < height_; i ++ )
+			for ( int j = 0; j <= i; j ++ )
+				array_[i][j] = initValue;
+}
+
+
 Matrix::Matrix ( initializer_list<initializer_list<double>> initValuesList )
-{	
+{
 	height_ = initValuesList.size();
 	width_ = initValuesList.begin()->size();
 	
@@ -248,39 +291,6 @@ Matrix::Matrix ( initializer_list<initializer_list<double>> initValuesList )
 		
 		i ++;
 	}
-}
-
-
-Matrix::Matrix ( int initHeight, int initWidth, string format,
-				 double initValue = 0.0 )
-{
-	if ( initHeight < 0 )
-		throw LinAlgError(MatErr::HEIGHT);
-	if ( initWidth < 0 )
-		throw LinAlgError(MatErr::WIDTH);
-	
-	height_ = initHeight;
-	width_ = initWidth;
-	
-	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ ) 
-		array_[i] = new double[width_];
-	
-	(*this).fill(initValue);
-	
-	if ( format == "Diagonal" ) 
-		for ( int i = 0, j = 0; (i < height_ and j < width_); i ++, j ++ )
-			array_[i][j] = initValue;
-	
-	if ( format == "TriangularUp" )
-		for ( int i = 0; i < height_; i ++ )
-			for ( int j = i; j < width_; j ++ )
-				array_[i][j] = initValue;
-	
-	if ( format == "TriangularDown" )
-		for ( int i = 0; i < height_; i ++ )
-			for ( int j = 0; j <= i; j ++ )
-				array_[i][j] = initValue;
 }
 
 
@@ -305,11 +315,11 @@ Matrix::Matrix ( const Vector& modelVector )
 	width_ = 1;
 	
 	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ ) {
+	for ( int i = 0; i < height_; i ++ )
 		array_[i] = new double;
-		
+	
+	for ( int i = 0; i < height_; i ++ )
 		array_[i][0] = modelVector[i];
-	}
 }
 
 
@@ -380,20 +390,84 @@ void Matrix::fill ( double value )
 
 void Matrix::resize ( int newHeight, int newWidth )
 {
-	if ( newHeight < 0 )
+	if ( newHeight <= 0 )
 		throw LinAlgError(MatErr::HEIGHT);
-	if ( newWidth < 0 )
+	if ( newWidth <= 0 )
 		throw LinAlgError(MatErr::WIDTH);
 	
-	Matrix buffer(newHeight, newWidth);
+	Matrix buffer(*this);
 	
-	buffer.fill(0.0);
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
+	delete []array_;
+	
+	height_ = newHeight;
+	width_ = newWidth;
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
+	
+	(*this).fill(0.0);
+	
+	for ( int i = 0; i < height_ and i < buffer.height_; i ++ )
+		for ( int j = 0; j < width_ and j < buffer.width_; j ++ )
+			(*this)[i][j] = buffer[i][j];
+}
+
+
+void Matrix::transpose ( )
+{
+	Matrix buffer(*this);
+	
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
+	delete []array_;
+	
+	height_ = buffer.width_;
+	width_ = buffer.height_;
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
 	
 	for ( int i = 0; i < height_; i ++ )
 		for ( int j = 0; j < width_; j ++ )
-			buffer[i][j] = (*this)[i][j];
+			(*this)[i][j] = buffer[j][i];
+}
+
+
+void Matrix::inverse ( )
+{
+	if ( height_ != width_ )
+		throw LinAlgError(MatErr::NOT_SQUARE);
 	
-	*this = buffer;
+	double determinant = (*this).determinant();
+	
+	if ( determinant == 0.0 )
+		throw LinAlgError(MatErr::SINGULAR);
+	
+	*this = (*this).cofactors();
+	(*this).transpose();
+	(*this) *= (1.0 / determinant);
+}
+
+
+void Matrix::gaussElimination ( )
+{
+	if ( height_ != width_ )
+		throw LinAlgError(MatErr::NOT_SQUARE);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = i + 1; j < height_; j ++ ) {
+			double coeff;
+			
+			if ( (*this)[i][i] != 0.0 )
+				coeff = (*this)[j][i] / (*this)[i][i];
+			
+			for ( int k = 0; k < width_; k ++ )
+				(*this)[j][k] -= coeff * (*this)[i][k];
+		}
 }
 
 //}
@@ -413,7 +487,7 @@ void Matrix::print ( ostream& destination )
 				maxLength = buffer.str().size();
 		}
 	
-	destination << height_ << " " << width_ << "\n";
+	destination << height_ << " " << width_ << "\n\n";
 	
 	for ( int i = 0; i < height_; i ++ ) {
 		for ( int j = 0; j < width_; j ++ )
@@ -421,33 +495,6 @@ void Matrix::print ( ostream& destination )
 		
 		destination << "\n";
 	}
-}
-
-
-Matrix Matrix::transpose ( )
-{
-	Matrix matrixT(width_, height_);
-	
-	for ( int i = 0; i < matrixT.height_; i ++ )
-		for ( int j = 0; j < matrixT.width_; j ++ )
-			matrixT[i][j] = (*this)[j][i];
-			
-	return matrixT;
-}
-
-
-Matrix Matrix::inverse ( )
-{
-	double determinant = (*this).determinant();
-	
-	if ( height_ != width_ or determinant == 0.0 )
-		throw LinAlgError(MatErr::SINGULAR);
-	
-	Matrix matrixInv(height_, width_);
-	
-	matrixInv = ( 1.0 / determinant ) * (*this).cofactors().transpose();
-	
-	return matrixInv;
 }
 
 
@@ -481,25 +528,6 @@ Matrix Matrix::submatrix ( int row, int column )
 }
 
 
-Matrix Matrix::gaussElimination ( )
-{
-	if ( height_ != width_ )
-		throw LinAlgError(MatErr::NOT_SQUARE);
-	
-	Matrix buffer(*this);
-	
-	for ( int i = 0; i < buffer.height_; i ++ )
-		for ( int j = i + 1; j < buffer.height_; j ++ ) {
-			double coeff = buffer[j][i] / buffer[i][i];
-			
-			for ( int k = 0; k < buffer.width_; k ++ )
-				buffer[j][k] -= coeff * buffer[i][k];
-		}
-	
-	return buffer;
-}
-
-
 Matrix Matrix::cofactors ( )
 {
 	if ( height_ != width_ )
@@ -509,7 +537,7 @@ Matrix Matrix::cofactors ( )
 	
 	for ( int i = 0; i < matrixCof.height_; i ++ )
 		for ( int j = 0; j < matrixCof.width_; j ++ ) {
-			Matrix buffer = submatrix(i, j);
+			Matrix buffer = (*this).submatrix(i, j);
 			
 			matrixCof[i][j] = pow(-1, i + j) * buffer.determinant();
 		}
@@ -547,7 +575,7 @@ double Matrix::determinant ( )
 	if ( height_ != width_ )
 		throw LinAlgError(MatErr::NOT_SQUARE);
 	
-	double result = 0;
+	double result = 1.0;
 	
 	if ( width_ == 1 )
 		result = (*this)[0][0];
@@ -556,18 +584,31 @@ double Matrix::determinant ( )
 		result = (*this)[0][0] * (*this)[1][1] - (*this)[1][0] * (*this)[0][1];
 	
 	else if ( width_ == 3 )
-		result = ruleOfSarrus();
+		result = (*this).ruleOfSarrus();
 	
 	else {
-		result = 1;
-		Matrix echelon;
-		echelon = gaussElimination();
+		Matrix echelon(*this);
+		echelon.gaussElimination();
 		
 		for ( int i = 0; i < height_; i ++ )
-			result *= echelon[i][i];	
+			result *= echelon[i][i];
 	}
 
 	return result;
+}
+
+
+double Matrix::trace ( )
+{
+	if ( height_ != width_ )
+		throw LinAlgError(MatErr::NOT_SQUARE);
+	
+	double trace = 0.0;
+	
+	for ( int i = 0; i < height_; i ++ )
+		trace += (*this)[i][i];
+	
+	return trace;
 }
 
 //}
@@ -575,11 +616,11 @@ double Matrix::determinant ( )
 
 //{ Matrix::Operators
 
-bool Matrix::operator == ( const Matrix& compared )
+bool Matrix::operator == ( const Matrix& compared ) const
 {
 	bool isSame = true;
 	
-	if ( height_ != compared.height_ and width_ != compared.width_ )
+	if ( height_ != compared.height_ or width_ != compared.width_ )
 		isSame = false;
 	else
 		for ( int i = 0; i < height_; i ++ )
@@ -593,7 +634,7 @@ bool Matrix::operator == ( const Matrix& compared )
 }
 
 
-bool Matrix::operator != ( const Matrix& compared )
+bool Matrix::operator != ( const Matrix& compared ) const
 {
 	if ( *this == compared )
 		return false;
@@ -602,10 +643,10 @@ bool Matrix::operator != ( const Matrix& compared )
 }
 
 
-Matrix Matrix::operator - ( )
+Matrix Matrix::operator - ( ) const
 {
 	Matrix opposite(*this);
-
+	
 	for ( int i = 0; i < opposite.height_; i ++ )
 		for ( int j = 0; j < opposite.width_; j ++ )
 			opposite[i][j] = -opposite[i][j];
@@ -646,7 +687,7 @@ Matrix Matrix::operator - ( const Matrix& rightTerm ) const
 
 Matrix Matrix::operator * ( const Matrix& rightTerm ) const
 {
-	if ( height_ != rightTerm.width_ )
+	if ( width_ != rightTerm.height_ )
 		throw LinAlgError(MatErr::INCOMPATIBLE);
 	
 	Matrix product(height_, rightTerm.width_);
@@ -660,18 +701,30 @@ Matrix Matrix::operator * ( const Matrix& rightTerm ) const
 			
 			product[i][j] = element;
 		}
-		
+	
 	return product;
 }
 
 
-Matrix Matrix::operator * ( double scalarTerm ) const
+Matrix Matrix::operator * ( double rightScalarTerm ) const
 {
-	Matrix result = *this;
+	Matrix result(*this);
 	
 	for ( int i = 0; i < height_; i ++ )
 		for ( int j = 0; j < width_; j ++ )
-			result[i][j] *= scalarTerm;
+			result[i][j] *= rightScalarTerm;
+	
+	return result;
+}
+
+
+Matrix Matrix::operator / ( double rightScalarTerm ) const
+{
+	Matrix result(*this);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			result[i][j] /= rightScalarTerm;
 	
 	return result;
 }
@@ -679,6 +732,8 @@ Matrix Matrix::operator * ( double scalarTerm ) const
 
 Matrix& Matrix::operator = ( const Matrix& rightTerm )
 {
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
 	delete []array_;
 	
 	height_ = rightTerm.height_;
@@ -697,12 +752,14 @@ Matrix& Matrix::operator = ( const Matrix& rightTerm )
 
 
 Matrix& Matrix::operator = ( initializer_list<initializer_list<double>> 
-							 valuesList )
+                             valuesList )
 {
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
 	delete []array_;
 	
 	height_ = valuesList.size();
-	width_ = (*valuesList.begin()).size();
+	width_ = valuesList.begin()->size();
 	
 	array_ = new double*[height_];
 	for ( int i = 0; i < height_; i ++ )
@@ -724,16 +781,26 @@ Matrix& Matrix::operator = ( initializer_list<initializer_list<double>>
 
 Matrix& Matrix::operator += ( const Matrix& rightTerm )
 {
-	*this = *this + rightTerm;
-
+	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
+		throw LinAlgError(MatErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] += rightTerm[i][j];
+	
 	return *this;
 }
 
 
 Matrix& Matrix::operator -= ( const Matrix& rightTerm )
 {
-	*this = *this - rightTerm;
-
+	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
+		throw LinAlgError(MatErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] += rightTerm[i][j];
+	
 	return *this;
 }
 
@@ -741,7 +808,27 @@ Matrix& Matrix::operator -= ( const Matrix& rightTerm )
 Matrix& Matrix::operator *= ( const Matrix& rightTerm )
 {
 	*this = *this * rightTerm;
+	
+	return *this;
+}
 
+
+Matrix& Matrix::operator *= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] *= rightScalarTerm;
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator /= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] /= rightScalarTerm;
+	
 	return *this;
 }
 
@@ -763,7 +850,7 @@ Vector::Vector ( )
 }
 
 
-Vector::Vector ( int initDimension, double initValue = 0.0 )
+Vector::Vector ( int initDimension, double initValue )
 {
 	if ( initDimension < 0 )
 		throw LinAlgError(VecErr::DIMENSION);
@@ -802,12 +889,6 @@ Vector::Vector ( const Vector& model )
 		array_[i] = model.array_[i];
 }
 
-
-Vector::~Vector ( )
-{
-	delete []array_;
-}
-
 //}
 
 
@@ -834,7 +915,7 @@ void Vector::read ( istream& source )
 void Vector::fill ( double value )
 {
 	for ( int i = 0; i < dimension_; i ++ )
-		array_[i] = value;
+		(*this)[i] = value;
 }
 
 
@@ -843,12 +924,28 @@ void Vector::resize ( int newDimension )
 	if ( newDimension < 0 )
 		throw LinAlgError(VecErr::DIMENSION);
 	
-	Vector buffer(newDimension);
+	Vector buffer(*this);
+	
+	delete []array_;
+	
+	dimension_ = newDimension;
+	
+	array_ = new double[dimension_];
+	
+	(*this).fill(0.0);
+	
+	for ( int i = 0; i < dimension_ and i < buffer.dimension_; i ++ )
+		(*this)[i] = buffer[i];
+}
+
+
+void Vector::normalise ( )
+{
+	double magnitude = (*this).magnitude();
 	
 	for ( int i = 0; i < dimension_; i ++ )
-		buffer[i] = (*this)[i];
-	
-	*this = buffer;
+		if ( magnitude != 0.0 )
+			(*this)[i] /= magnitude;
 }
 
 //}
@@ -884,31 +981,6 @@ double Vector::magnitude ( )
 	return sqrt(result);
 }
 
-
-Vector Vector::normalise ( )
-{
-	double magnitude = (*this).magnitude();
-	
-	Vector unitVector(*this);
-	
-	if ( magnitude != 0.0 )
-		for ( int i = 0; i < dimension_; i ++ )
-			unitVector[i] /= magnitude;
-	
-	return unitVector;
-}
-
-
-Matrix Vector::getAsMatrix ( )
-{
-	Matrix columnVector(dimension_, 1);
-	
-	for ( int i = 0; i < dimension_; i ++ )
-		columnVector[i][0] = (*this)[i];
-	
-	return columnVector;
-}
-
 //}
 
 
@@ -931,7 +1003,7 @@ bool Vector::operator == ( const Vector& compared )
 
 bool Vector::operator != ( const Vector& compared )
 {
-	if ( (*this) == compared )
+	if ( *this == compared )
 		return false;
 	else
 		return true;
@@ -1035,8 +1107,11 @@ Vector& Vector::operator = ( initializer_list<double> valuesList )
 
 Vector& Vector::operator += ( const Vector& rightTerm )
 {
+	if ( dimension_ != rightTerm.dimension_ )
+		throw LinAlgError(VecErr::INCOMPATIBLE);
 	
-	*this = *this + rightTerm;
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] += rightTerm[i];
 	
 	return *this;
 }
@@ -1044,8 +1119,11 @@ Vector& Vector::operator += ( const Vector& rightTerm )
 
 Vector& Vector::operator -= ( const Vector& rightTerm )
 {
+	if ( dimension_ != rightTerm.dimension_ )
+		throw LinAlgError(VecErr::INCOMPATIBLE);
 	
-	*this = *this - rightTerm;
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] -= rightTerm[i];
 	
 	return *this;
 }
@@ -1053,7 +1131,8 @@ Vector& Vector::operator -= ( const Vector& rightTerm )
 
 Vector& Vector::operator *= ( double rightScalarTerm )
 {
-	*this = *this * rightScalarTerm;
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] *= rightScalarTerm;
 	
 	return *this;
 }
@@ -1061,7 +1140,8 @@ Vector& Vector::operator *= ( double rightScalarTerm )
 
 Vector& Vector::operator /= ( double rightScalarTerm )
 {
-	*this = *this / rightScalarTerm;
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] /= rightScalarTerm;
 	
 	return *this;
 }
@@ -1077,23 +1157,12 @@ Vector& Vector::operator /= ( double rightScalarTerm )
 
 //{ Functions
 
-Matrix identity ( int size )
-{
-	if ( size < 0 )
-		throw LinAlgError(MatErr::HEIGHT);
-	
-	Matrix matrixI(size, size, "Diagonal", 1.0);
-		
-	return matrixI;
-}
-
-
 Matrix pow ( Matrix base, int exponent )
 {
 	Matrix result(base);
 	
 	if ( exponent == 0 )
-		result = identity(base.getHeight());
+		result = Matrix(base.getHeight(), IDENTITY);
 	else
 		for ( int i = 0; i < exponent; i ++ )
 			result *= base;

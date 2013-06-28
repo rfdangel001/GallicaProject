@@ -29,7 +29,7 @@ using namespace std;
 
 //{ Constants
 
-enum MatrixType {IDENTITY, DIAGONAL, TRIANGULAR_UP, TRIANGULAR_DOWN };
+enum MatrixType {IDENTITY, DIAGONAL, TRIANGULAR_UP, TRIANGULAR_DOWN};
 
 //}
 
@@ -81,10 +81,12 @@ public:
 		         row_ = matrixRow; width_ = width; }
 		
 		double& operator [] ( int column )  {
-		           if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
+		           if ( column >= width_ or column < 0 )
+		              throw LinAlgError(MatErr::COLUMN);
 		           return row_[column]; }
 		 double operator [] ( int column ) const  {
-		           if ( column >= width_ ) throw LinAlgError(MatErr::COLUMN);
+		           if ( column >= width_ or column < 0 )
+		              throw LinAlgError(MatErr::COLUMN);
 		           return row_[column]; }
 	
 	protected:
@@ -94,10 +96,12 @@ public:
 	
 	// Operators
 	  Proxy operator [] ( int row )  {
-	           if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
+	           if ( row >= height_ or row < 0 )
+	              throw LinAlgError(MatErr::ROW);
 	           return Proxy(array_[row], width_); }
 	  Proxy operator [] ( int row ) const  {
-	           if ( row >= height_ ) throw LinAlgError(MatErr::ROW);
+	           if ( row >= height_ or row < 0 )
+	              throw LinAlgError(MatErr::ROW);
 	           return Proxy(array_[row], width_); }
 	   bool operator == ( const Matrix& ) const;
 	   bool operator != ( const Matrix& ) const;
@@ -148,11 +152,11 @@ public:
 	
 	// Operators
 	double& operator [] ( int element )  {
-	           if ( element >= dimension_ ) 
+	           if ( element >= dimension_ or element < 0 ) 
 	               throw LinAlgError(VecErr::ELEMENT);
 	           return array_[element]; }
 	 double operator [] ( int element ) const  {
-	           if ( element >= dimension_ )
+	           if ( element >= dimension_ or element < 0 )
 	               throw LinAlgError(VecErr::ELEMENT);
 	           return array_[element]; }
 	   bool operator == ( const Vector& );

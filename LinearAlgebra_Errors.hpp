@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra_Errors.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : May 29 2013
-//               Last entry : June 25 2013
+//               Last entry : June 27 2013
 // DESCRIPTION : Exception types and handlers for "LinearAlgebra.hpp".
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -18,40 +18,42 @@ using namespace std;
 
 namespace MatErr
 {
-	enum Code {CAST = 0,
-			   HEIGHT,
-			   WIDTH,
-			   ROW,
-			   COLUMN,
-			   NOT_SQUARE,
-			   SINGULAR,
-			   INCOMPATIBLE,
-			   VECTORS_DIMENSIONS};
+	enum Code {CAST,
+	           HEIGHT,
+	           WIDTH,
+	           ROW,
+	           COLUMN,
+	           NOT_SQUARE,
+	           SINGULAR,
+	           NOT_SYMMETRIC,
+	           INCOMPATIBLE,
+	           VECTORS_DIMENSIONS};
 
 	const string messages[] = {"Casting error.",
-							   "Invalid height.",
-							   "Invalid width.",
-							   "Row subscript out of range.",
-							   "Column subscript out of range.",
-							   "Not square matrix.",
-							   "Singular matrix (not invertible).",
-							   "Incompatible operands.",
-							   "Column vectors not the same dimension."};
+	                           "Invalid height.",
+	                           "Invalid width.",
+	                           "Row subscript out of range.",
+	                           "Column subscript out of range.",
+	                           "Not square matrix.",
+	                           "Singular matrix (not invertible).",
+	                           "Not symmetric matrix.",
+	                           "Incompatible operands.",
+	                           "Column vectors not the same dimension."};
 }
 
 namespace VecErr
 {
-	enum Code {CAST = 0,
-			   DIMENSION,
-			   ELEMENT,
-			   INCOMPATIBLE,
-			   NOT_3D};
+	enum Code {CAST,
+	           DIMENSION,
+	           ELEMENT,
+	           INCOMPATIBLE,
+	           NOT_3D};
 	
 	const string messages[] = {"Casting error.",
-							   "Invalid dimension.",
-							   "Element subscript out of range.",
-							   "Incompatible operands.",
-							   "Not a 3D vector."};
+	                           "Invalid dimension.",
+	                           "Element subscript out of range.",
+	                           "Incompatible operands.",
+	                           "Not a 3D vector."};
 }
 
 
@@ -60,16 +62,16 @@ class LinAlgError
 {
 public:
 	// Constructors
-	LinAlgError ( MatErr::Code errorCode )
-				{ errorType_ = "Matrix";
-				  errorMessage_ = MatErr::messages[errorCode]; }
-	LinAlgError ( VecErr::Code errorCode )
-				{ errorType_ = "Vector";
-				  errorMessage_ = VecErr::messages[errorCode]; }
+	LinAlgError ( MatErr::Code errorCode )  {
+	               errorType_ = "Matrix";
+	               errorMessage_ = MatErr::messages[errorCode]; }
+	LinAlgError ( VecErr::Code errorCode )  {
+	               errorType_ = "Vector";
+	               errorMessage_ = VecErr::messages[errorCode]; }
 	
 	// Non-modifying methods
-	void print ( ostream& destination )
-		 { destination << errorType_ << " : " << errorMessage_ << "\n"; }
+	void print ( ostream& destination )  {
+	        destination << errorType_ << " : " << errorMessage_ << "\n"; }
 
 protected:
 	// Attributes

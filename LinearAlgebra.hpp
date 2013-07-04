@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
-//               Last entry : June 27 2013
+//               Last entry : July 4 2013
 // DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,7 @@ using namespace std;
 
 //{ Constants
 
-enum MatrixType {IDENTITY, DIAGONAL, TRIANGULAR_UP, TRIANGULAR_DOWN};
+enum MatrixType {IDENTITY, SCALAR, DIAGONAL, TRIANGULAR_UP, TRIANGULAR_DOWN};
 
 //}
 
@@ -62,10 +62,8 @@ public:
 	void gaussElimination ( );
 	
 	// Non-modifying methods
-	   int getHeight ( )  {
-	          return height_; }
-	   int getWidth ( )  {
-	          return width_; }
+	   int getHeight ( );
+	   int getWidth ( );
 	  void print ( ostream& );
 	Matrix submatrix ( int, int );
 	Matrix cofactors ( );
@@ -77,17 +75,10 @@ public:
 	class Proxy
 	{
 	public:
-		Proxy ( double* matrixRow, int width )  {
-		         row_ = matrixRow; width_ = width; }
+		Proxy ( double*, int );
 		
-		double& operator [] ( int column )  {
-		           if ( column >= width_ or column < 0 )
-		              throw LinAlgError(MatErr::COLUMN);
-		           return row_[column]; }
-		 double operator [] ( int column ) const  {
-		           if ( column >= width_ or column < 0 )
-		              throw LinAlgError(MatErr::COLUMN);
-		           return row_[column]; }
+		double& operator [] ( int );
+		 double operator [] ( int ) const;
 	
 	protected:
 		    int width_;
@@ -95,14 +86,8 @@ public:
 	};
 	
 	// Operators
-	  Proxy operator [] ( int row )  {
-	           if ( row >= height_ or row < 0 )
-	              throw LinAlgError(MatErr::ROW);
-	           return Proxy(array_[row], width_); }
-	  Proxy operator [] ( int row ) const  {
-	           if ( row >= height_ or row < 0 )
-	              throw LinAlgError(MatErr::ROW);
-	           return Proxy(array_[row], width_); }
+	  Proxy operator [] ( int );
+	  Proxy operator [] ( int ) const;
 	   bool operator == ( const Matrix& ) const;
 	   bool operator != ( const Matrix& ) const;
 	 Matrix operator - ( ) const;
@@ -135,8 +120,7 @@ public:
 	Vector ( int, double = 0.0);
 	Vector ( initializer_list<double> );
 	Vector ( const Vector& );
-	~Vector ( )  {
-	           delete []array_; }
+	~Vector ( );
 	
 	// Modifying methods
 	void read ( istream& );
@@ -145,20 +129,13 @@ public:
 	void normalise ( );
 	
 	// Non-modifying methods
-	   int getDimension ( ) const  {
-	          return dimension_; }
+	   int getDimension ( ) const;
 	  void print ( ostream& );
 	double magnitude ( );
 	
 	// Operators
-	double& operator [] ( int element )  {
-	           if ( element >= dimension_ or element < 0 ) 
-	               throw LinAlgError(VecErr::ELEMENT);
-	           return array_[element]; }
-	 double operator [] ( int element ) const  {
-	           if ( element >= dimension_ or element < 0 )
-	               throw LinAlgError(VecErr::ELEMENT);
-	           return array_[element]; }
+	double& operator [] ( int );
+	 double operator [] ( int ) const;
 	   bool operator == ( const Vector& );
 	   bool operator != ( const Vector& );
 	 Vector operator - ( );
@@ -259,7 +236,7 @@ Matrix::Matrix ( int initOrder, MatrixType type, double initValue )
 		for ( int i = 0; i < height_; i ++ )
 			array_[i][i] = 1.0;
 	
-	if ( type == DIAGONAL )
+	if ( type == SCALAR )
 		for ( int i = 0; i < height_; i ++ )
 			array_[i][i] = initValue;
 	
@@ -351,6 +328,7 @@ Matrix::Matrix ( initializer_list<Vector> initVectorsList )
 }
 
 
+inline
 Matrix::~Matrix ( )
 {
 	for ( int i = 0; i < height_; i ++ )
@@ -478,6 +456,20 @@ void Matrix::gaussElimination ( )
 
 
 //{ Matrix::Non-modifying methods
+
+inline
+int Matrix::getHeight ( )
+{
+	return height_;
+}
+
+
+inline
+int Matrix::getWidth ( )
+{
+	return width_;
+}
+
 
 void Matrix::print ( ostream& destination )
 {
@@ -618,7 +610,59 @@ double Matrix::trace ( )
 //}
 
 
+//{ Matrix::Proxy
+
+inline
+Matrix::Proxy::Proxy ( double* matrixRow, int width )
+{
+	row_ = matrixRow;
+	width_ = width;
+}
+
+
+inline
+double& Matrix::Proxy::operator [] ( int column )
+{
+	if ( column >= width_ or column < 0 )
+		throw LinAlgError(MatErr::COLUMN);
+	
+	return row_[column];
+}
+
+
+inline
+double Matrix::Proxy::operator [] ( int column ) const
+{
+	if ( column >= width_ or column < 0 )
+		throw LinAlgError(MatErr::COLUMN);
+	
+	return row_[column];
+}
+
+//}
+
+
 //{ Matrix::Operators
+
+inline
+Matrix::Proxy Matrix::operator [] ( int row )
+{
+	if ( row >= height_ or row < 0 )
+		throw LinAlgError(MatErr::ROW);
+	
+	return Proxy(array_[row], width_);
+}
+
+
+inline
+Matrix::Proxy Matrix::operator [] ( int row ) const
+{
+	if ( row >= height_ or row < 0 )
+		throw LinAlgError(MatErr::ROW);
+	
+	return Proxy(array_[row], width_);
+}
+
 
 bool Matrix::operator == ( const Matrix& compared ) const
 {
@@ -893,6 +937,13 @@ Vector::Vector ( const Vector& model )
 		array_[i] = model.array_[i];
 }
 
+
+inline
+Vector::~Vector ( )
+{
+	delete []array_;
+}
+
 //}
 
 
@@ -957,6 +1008,13 @@ void Vector::normalise ( )
 
 //{ Vector::Non-modifying methods
 
+inline
+int Vector::getDimension ( ) const
+{
+	return dimension_;
+}
+
+
 void Vector::print ( ostream& destination )
 {
 	int maxLength = 0;
@@ -989,6 +1047,26 @@ double Vector::magnitude ( )
 
 
 //{ Vector::Operators
+
+inline
+double& Vector::operator [] ( int element )
+{
+	if ( element >= dimension_ or element < 0 )
+		throw LinAlgError(VecErr::ELEMENT);
+	
+	return array_[element];
+}
+
+
+inline
+double Vector::operator [] ( int element ) const
+{
+	if ( element >= dimension_ or element < 0 )
+		throw LinAlgError(VecErr::ELEMENT);
+	
+	return array_[element];
+}
+
 
 bool Vector::operator == ( const Vector& compared )
 {
@@ -1157,7 +1235,7 @@ Vector& Vector::operator /= ( double rightScalarTerm )
 
 
 
-//{ Global subroutines
+//{ Functions
 
 //{ Functions
 

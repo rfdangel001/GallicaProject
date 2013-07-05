@@ -2,7 +2,7 @@
 //        FILE : SdlUtility.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 22 2013
-//               Last Entry : July 4 2013
+//               Last Entry : July 5 2013
 // DESCRIPTION : Various tools to use with SDL.
 //     REMARKS : All classes and functions in this library are under the 
 //               namespace 'Sdl'.
@@ -39,7 +39,7 @@ namespace Sdl
 //{ Classes
 
 // Forward declarations
-class Timer; class Button;
+class Timer; class Button; class StringInput;
 
 
 class Timer
@@ -71,11 +71,12 @@ protected:
 class Button
 {
 public:
-	// Constructors
+	// Constructor and Destructor
 	Button ( string, int, int, int, int );
+	~Button ( );
 	
 	// Modifying methods
-	void checkInput ( Uint8, int, int );
+	void handleInput ( Uint8, int, int );
 	
 	// Non-modifying methods
 	 int getPositionX ( );
@@ -86,21 +87,57 @@ public:
 	void apply ( SDL_Surface* );
 
 protected:
+	// Input attributes
+	bool isMouseOver_;
+	bool isPressed_;
+	bool isClicked_;
+	
 	// Position attributes
 	int positionX_;
 	int positionY_;
 	int height_;
 	int width_;
 	
-	// Input attributes
-	bool isMouseOver_;
-	bool isPressed_;
-	bool isClicked_;
-	
 	// Graphics attributes
 	SDL_Surface* spriteSheet_;
 	    SDL_Rect clips_[3];
 	
+};
+
+
+class StringInput
+{
+public:
+	// Constructor
+	StringInput ( SDL_Color, SDL_Color, TTF_Font*, int, int, int, int );
+	
+	// Modifying methods
+	void activate ( );
+	void deactivate ( );
+	void handleInput ( SDL_Event );
+	
+	// Non-modifying methods
+	  bool isActive ( );
+	string getText ( );
+	  void apply ( SDL_Surface* );
+
+protected:
+	// Text attributes
+	string text_;
+	
+	// Input attributes
+	bool isActive_;
+	
+	// Position attributes
+	int positionX_;
+	int positionY_;
+	int height_;
+	int width_;
+	
+	// Graphics attributes
+	SDL_Color textColor_;
+	SDL_Color backgroundColor_;
+	TTF_Font* displayFont_;
 };
 
 //}
@@ -110,10 +147,9 @@ protected:
 
 SDL_Surface* loadImage ( string );
 
-void applySurface ( SDL_Surface*, SDL_Surface*, int = 0, int = 0,
-                    SDL_Rect* = NULL );
+void applySurface ( SDL_Surface*, SDL_Surface*, int, int, SDL_Rect* = NULL );
 
-void applyText ( string, TTF_Font*, SDL_Surface*, int = 0, int = 0,
+void applyText ( string, TTF_Font*, SDL_Surface*, int, int,
                  SDL_Color = {255, 255, 255} );
 
 void wait ( int );
@@ -220,10 +256,10 @@ int Timer::getTicks ( )
 
 //{ Button
 
-//{ Button::Constructor
+//{ Button::Constructor and Destructor
 
-Button::Button ( string spriteFileName, int initX, int initY, int initHeight,
-                 int initWidth )
+Button::Button ( string spriteFileName, int initX, int initY, int initWidth,
+                 int initHeight )
 {
 	positionX_ = initX;
 	positionY_ = initY;
@@ -241,12 +277,19 @@ Button::Button ( string spriteFileName, int initX, int initY, int initHeight,
 	clips_[2] = {0, 100, 200, 50};
 }
 
+
+inline
+Button::~Button ( )
+{
+	SDL_FreeSurface ( spriteSheet_ );
+}
+
 //}
 
 
 //{ Button::Modifying methods
 
-void Button::checkInput ( Uint8 mouseState, int mouseX, int mouseY )
+void Button::handleInput ( Uint8 mouseState, int mouseX, int mouseY )
 {
 	isClicked_ = false;
 	
@@ -318,6 +361,103 @@ void Button::apply ( SDL_Surface* destination )
 	else
 	applySurface(spriteSheet_, destination, positionX_, positionY_, 
 	             &clips_[0]);
+}
+
+//}
+
+//}
+
+
+//{ StringInput
+
+//{ StringInput::Constructor
+
+StringInput::StringInput ( SDL_Color initTextColor, SDL_Color initBackColor,
+                           TTF_Font* initDisplayFont, int initPositionX,
+                           int initPositionY, int initWidth, int initHeight )
+{
+	text_ = "";
+	
+	textColor_ = initTextColor;
+	backgroundColor_ = initBackColor;
+	
+	displayFont_ = initDisplayFont;
+	
+	positionX_ = initPositionX;
+	positionY_ = initPositionY;
+	width_ = initWidth;
+	height_ = initHeight;
+	
+	isActive_ = false;
+}
+
+//}
+
+
+//{ StringInput::Modifying methods
+
+inline
+void StringInput::activate ( )
+{
+	isActive_ = true;
+}
+
+
+inline
+void StringInput::deactivate ( )
+{
+	isActive_ = false;
+	text_.clear();
+}
+
+
+void StringInput::handleInput ( SDL_Event input )
+{
+	if ( isActive_ ) {
+		//TODO: save text input.
+		if ( input.type == SDL_KEYDOWN ) {
+			if ( input.key.keysym.sym == SDLK_BACKSPACE and text_.length() != 0 )
+				text_.pop_back();
+			else if ( 
+			input.key.keysym.unicode >= 0x20 and 
+			input.key.keysym.unicode <= 0x7E )
+				text_ += char(input.key.keysym.unicode);
+		}
+	}
+}
+
+//}
+
+
+//{ StringInput::Non-modifying methods
+
+inline
+bool StringInput::isActive ( )
+{
+	return isActive_;
+}
+
+
+inline
+string StringInput::getText ( )
+{
+	return text_;
+}
+
+
+void StringInput::apply ( SDL_Surface* destination )
+{
+	if ( isActive_ == true ) {
+		SDL_Rect zone = {positionX_, positionY_, width_, height_};
+		Uint32 formattedBackColor = SDL_MapRGB(destination->format,
+		                                       backgroundColor_.r,
+		                                       backgroundColor_.g,
+		                                       backgroundColor_.b);
+		
+		SDL_FillRect(destination, &zone, formattedBackColor);
+		applyText(text_, displayFont_, destination, positionX_,
+		          positionY_, textColor_);
+	}
 }
 
 //}

@@ -2,7 +2,7 @@
 //        FILE : SdlUtility.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 22 2013
-//               Last Entry : July 5 2013
+//               Last Entry : July 6 2013
 // DESCRIPTION : Various tools to use with SDL.
 //     REMARKS : All classes and functions in this library are under the 
 //               namespace 'Sdl'.
@@ -16,6 +16,7 @@ using namespace std;
 //{ Includes
 
 #include <string>
+#include <cmath>
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
@@ -386,7 +387,8 @@ StringInput::StringInput ( SDL_Color initTextColor, SDL_Color initBackColor,
 	positionX_ = initPositionX;
 	positionY_ = initPositionY;
 	width_ = initWidth;
-	height_ = initHeight;
+	height_ = TTF_FontLineSkip(displayFont_) +
+	          int(ceil(TTF_FontLineSkip(displayFont_) / 5.0));
 	
 	isActive_ = false;
 }
@@ -455,8 +457,9 @@ void StringInput::apply ( SDL_Surface* destination )
 		                                       backgroundColor_.b);
 		
 		SDL_FillRect(destination, &zone, formattedBackColor);
-		applyText(text_, displayFont_, destination, positionX_,
-		          positionY_, textColor_);
+		applyText(text_, displayFont_, destination, 
+		          positionX_ + TTF_FontLineSkip(displayFont_) / 5,
+		          positionY_ + TTF_FontLineSkip(displayFont_) / 5, textColor_);
 	}
 }
 

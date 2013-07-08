@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
-//               Last entry : July 4 2013
+//               Last entry : July 8 2013
 // DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -85,17 +85,8 @@ public:
 		double* row_;
 	};
 	
-	// Operators
+	// Modifying operators
 	  Proxy operator [] ( int );
-	  Proxy operator [] ( int ) const;
-	   bool operator == ( const Matrix& ) const;
-	   bool operator != ( const Matrix& ) const;
-	 Matrix operator - ( ) const;
-	 Matrix operator + ( const Matrix& ) const;
-	 Matrix operator - ( const Matrix& ) const;
-	 Matrix operator * ( const Matrix& ) const;
-	 Matrix operator * ( double ) const;
-	 Matrix operator / ( double ) const;
 	Matrix& operator = ( const Matrix& );
 	Matrix& operator = ( initializer_list<initializer_list<double>> );
 	Matrix& operator += ( const Matrix& );
@@ -103,6 +94,18 @@ public:
 	Matrix& operator *= ( const Matrix& );
 	Matrix& operator *= ( double );
 	Matrix& operator /= ( double );
+	
+	// Non-modifying operators
+	 Proxy operator [] ( int ) const;
+	  bool operator == ( const Matrix& ) const;
+	  bool operator != ( const Matrix& ) const;
+	Matrix operator - ( ) const;
+	Matrix operator + ( const Matrix& ) const;
+	Matrix operator - ( const Matrix& ) const;
+	Matrix operator * ( const Matrix& ) const;
+	Matrix operator * ( double ) const;
+	Matrix operator / ( double ) const;
+
 
 protected:
 	// Attributes
@@ -133,22 +136,24 @@ public:
 	  void print ( ostream& );
 	double magnitude ( );
 	
-	// Operators
+	// Modifying operators
 	double& operator [] ( int );
-	 double operator [] ( int ) const;
-	   bool operator == ( const Vector& );
-	   bool operator != ( const Vector& );
-	 Vector operator - ( );
-	 Vector operator + ( const Vector& ) const;
-	 Vector operator - ( const Vector& ) const;
-	 Vector operator * ( double ) const;
-	 Vector operator / ( double ) const;
 	Vector& operator = ( const Vector& );
 	Vector& operator = ( initializer_list<double> );
 	Vector& operator += ( const Vector& );
 	Vector& operator -= ( const Vector& );
 	Vector& operator *= ( double );
 	Vector& operator /= ( double );
+	 
+	// Non-modifying operators
+	double operator [] ( int ) const;
+	  bool operator == ( const Vector& );
+	  bool operator != ( const Vector& );
+	Vector operator - ( );
+	Vector operator + ( const Vector& ) const;
+	Vector operator - ( const Vector& ) const;
+	Vector operator * ( double ) const;
+	Vector operator / ( double ) const;
 
 protected:
 	// Attributes
@@ -642,7 +647,7 @@ double Matrix::Proxy::operator [] ( int column ) const
 //}
 
 
-//{ Matrix::Operators
+//{ Matrix::Modifying operators
 
 inline
 Matrix::Proxy Matrix::operator [] ( int row )
@@ -653,6 +658,113 @@ Matrix::Proxy Matrix::operator [] ( int row )
 	return Proxy(array_[row], width_);
 }
 
+
+Matrix& Matrix::operator = ( const Matrix& rightTerm )
+{
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
+	delete []array_;
+	
+	height_ = rightTerm.height_;
+	width_ = rightTerm.width_;
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] = rightTerm[i][j];
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator = ( initializer_list<initializer_list<double>> 
+                             valuesList )
+{
+	for ( int i = 0; i < height_; i ++ )
+		delete []array_[i];
+	delete []array_;
+	
+	height_ = valuesList.size();
+	width_ = valuesList.begin()->size();
+	
+	array_ = new double*[height_];
+	for ( int i = 0; i < height_; i ++ )
+		array_[i] = new double[width_];
+	
+	int i = 0;
+	for ( initializer_list<double> row : valuesList ) {
+		int j = 0;
+		for ( double column : row ) {
+			array_[i][j] = column;
+			
+			j ++;
+		}
+	}
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator += ( const Matrix& rightTerm )
+{
+	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
+		throw LinAlgError(MatErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] += rightTerm[i][j];
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator -= ( const Matrix& rightTerm )
+{
+	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
+		throw LinAlgError(MatErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] += rightTerm[i][j];
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator *= ( const Matrix& rightTerm )
+{
+	*this = *this * rightTerm;
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator *= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] *= rightScalarTerm;
+	
+	return *this;
+}
+
+
+Matrix& Matrix::operator /= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < height_; i ++ )
+		for ( int j = 0; j < width_; j ++ )
+			(*this)[i][j] /= rightScalarTerm;
+	
+	return *this;
+}
+
+//}
+
+
+//{ Matrix::Non-modifying operators
 
 inline
 Matrix::Proxy Matrix::operator [] ( int row ) const
@@ -775,109 +887,6 @@ Matrix Matrix::operator / ( double rightScalarTerm ) const
 			result[i][j] /= rightScalarTerm;
 	
 	return result;
-}
-
-
-Matrix& Matrix::operator = ( const Matrix& rightTerm )
-{
-	for ( int i = 0; i < height_; i ++ )
-		delete []array_[i];
-	delete []array_;
-	
-	height_ = rightTerm.height_;
-	width_ = rightTerm.width_;
-	
-	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ )
-		array_[i] = new double[width_];
-	
-	for ( int i = 0; i < height_; i ++ )
-		for ( int j = 0; j < width_; j ++ )
-			(*this)[i][j] = rightTerm[i][j];
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator = ( initializer_list<initializer_list<double>> 
-                             valuesList )
-{
-	for ( int i = 0; i < height_; i ++ )
-		delete []array_[i];
-	delete []array_;
-	
-	height_ = valuesList.size();
-	width_ = valuesList.begin()->size();
-	
-	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ )
-		array_[i] = new double[width_];
-	
-	int i = 0;
-	for ( initializer_list<double> row : valuesList ) {
-		int j = 0;
-		for ( double column : row ) {
-			array_[i][j] = column;
-			
-			j ++;
-		}
-	}
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator += ( const Matrix& rightTerm )
-{
-	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
-		throw LinAlgError(MatErr::INCOMPATIBLE);
-	
-	for ( int i = 0; i < height_; i ++ )
-		for ( int j = 0; j < width_; j ++ )
-			(*this)[i][j] += rightTerm[i][j];
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator -= ( const Matrix& rightTerm )
-{
-	if ( height_ != rightTerm.height_ or width_ != rightTerm.width_ )
-		throw LinAlgError(MatErr::INCOMPATIBLE);
-	
-	for ( int i = 0; i < height_; i ++ )
-		for ( int j = 0; j < width_; j ++ )
-			(*this)[i][j] += rightTerm[i][j];
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator *= ( const Matrix& rightTerm )
-{
-	*this = *this * rightTerm;
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator *= ( double rightScalarTerm )
-{
-	for ( int i = 0; i < height_; i ++ )
-		for ( int j = 0; j < width_; j ++ )
-			(*this)[i][j] *= rightScalarTerm;
-	
-	return *this;
-}
-
-
-Matrix& Matrix::operator /= ( double rightScalarTerm )
-{
-	for ( int i = 0; i < height_; i ++ )
-		for ( int j = 0; j < width_; j ++ )
-			(*this)[i][j] /= rightScalarTerm;
-	
-	return *this;
 }
 
 //}
@@ -1046,7 +1055,7 @@ double Vector::magnitude ( )
 //}
 
 
-//{ Vector::Operators
+//{ Vector::Modifying operators
 
 inline
 double& Vector::operator [] ( int element )
@@ -1057,6 +1066,86 @@ double& Vector::operator [] ( int element )
 	return array_[element];
 }
 
+
+Vector& Vector::operator = ( const Vector& rightTerm )
+{
+	delete []array_;
+	
+	dimension_ = rightTerm.dimension_;
+	
+	array_ = new double[dimension_];
+	
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] = rightTerm[i];
+	
+	return *this;
+}
+
+
+Vector& Vector::operator = ( initializer_list<double> valuesList )
+{
+	delete []array_;
+	
+	dimension_ = valuesList.size();
+	
+	array_ = new double[dimension_];
+	
+	int i = 0;
+	for ( double element : valuesList ) {
+		(*this)[i] = element;
+		
+		i ++;
+	}
+	
+	return *this;
+}
+
+
+Vector& Vector::operator += ( const Vector& rightTerm )
+{
+	if ( dimension_ != rightTerm.dimension_ )
+		throw LinAlgError(VecErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] += rightTerm[i];
+	
+	return *this;
+}
+
+
+Vector& Vector::operator -= ( const Vector& rightTerm )
+{
+	if ( dimension_ != rightTerm.dimension_ )
+		throw LinAlgError(VecErr::INCOMPATIBLE);
+	
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] -= rightTerm[i];
+	
+	return *this;
+}
+
+
+Vector& Vector::operator *= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] *= rightScalarTerm;
+	
+	return *this;
+}
+
+
+Vector& Vector::operator /= ( double rightScalarTerm )
+{
+	for ( int i = 0; i < dimension_; i ++ )
+		(*this)[i] /= rightScalarTerm;
+	
+	return *this;
+}
+
+//}
+
+
+//{ Vector::Non-modifying operators
 
 inline
 double Vector::operator [] ( int element ) const
@@ -1152,81 +1241,6 @@ Vector Vector::operator / ( double rightScalarTerm ) const
 	return result;
 }
 
-
-Vector& Vector::operator = ( const Vector& rightTerm )
-{
-	delete []array_;
-	
-	dimension_ = rightTerm.dimension_;
-	
-	array_ = new double[dimension_];
-	
-	for ( int i = 0; i < dimension_; i ++ )
-		(*this)[i] = rightTerm[i];
-	
-	return *this;
-}
-
-
-Vector& Vector::operator = ( initializer_list<double> valuesList )
-{
-	delete []array_;
-	
-	dimension_ = valuesList.size();
-	
-	array_ = new double[dimension_];
-	
-	int i = 0;
-	for ( double element : valuesList ) {
-		(*this)[i] = element;
-		
-		i ++;
-	}
-	
-	return *this;
-}
-
-
-Vector& Vector::operator += ( const Vector& rightTerm )
-{
-	if ( dimension_ != rightTerm.dimension_ )
-		throw LinAlgError(VecErr::INCOMPATIBLE);
-	
-	for ( int i = 0; i < dimension_; i ++ )
-		(*this)[i] += rightTerm[i];
-	
-	return *this;
-}
-
-
-Vector& Vector::operator -= ( const Vector& rightTerm )
-{
-	if ( dimension_ != rightTerm.dimension_ )
-		throw LinAlgError(VecErr::INCOMPATIBLE);
-	
-	for ( int i = 0; i < dimension_; i ++ )
-		(*this)[i] -= rightTerm[i];
-	
-	return *this;
-}
-
-
-Vector& Vector::operator *= ( double rightScalarTerm )
-{
-	for ( int i = 0; i < dimension_; i ++ )
-		(*this)[i] *= rightScalarTerm;
-	
-	return *this;
-}
-
-
-Vector& Vector::operator /= ( double rightScalarTerm )
-{
-	for ( int i = 0; i < dimension_; i ++ )
-		(*this)[i] /= rightScalarTerm;
-	
-	return *this;
-}
 
 //}
 

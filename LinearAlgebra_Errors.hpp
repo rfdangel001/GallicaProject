@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra_Errors.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : May 29 2013
-//               Last entry : June 27 2013
+//               Last entry : July 7 2013
 // DESCRIPTION : Exception types and handlers for "LinearAlgebra.hpp".
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -18,8 +18,7 @@ using namespace std;
 
 namespace MatErr
 {
-	enum Code {CAST,
-	           HEIGHT,
+	enum Code {HEIGHT,
 	           WIDTH,
 	           ROW,
 	           COLUMN,
@@ -29,8 +28,7 @@ namespace MatErr
 	           INCOMPATIBLE,
 	           VECTORS_DIMENSIONS};
 
-	const string messages[] = {"Casting error.",
-	                           "Invalid height.",
+	const string messages[] = {"Invalid height.",
 	                           "Invalid width.",
 	                           "Row subscript out of range.",
 	                           "Column subscript out of range.",
@@ -43,14 +41,12 @@ namespace MatErr
 
 namespace VecErr
 {
-	enum Code {CAST,
-	           DIMENSION,
+	enum Code {DIMENSION,
 	           ELEMENT,
 	           INCOMPATIBLE,
 	           NOT_3D};
 	
-	const string messages[] = {"Casting error.",
-	                           "Invalid dimension.",
+	const string messages[] = {"Invalid dimension.",
 	                           "Element subscript out of range.",
 	                           "Incompatible operands.",
 	                           "Not a 3D vector."};
@@ -62,16 +58,11 @@ class LinAlgError
 {
 public:
 	// Constructors
-	LinAlgError ( MatErr::Code errorCode )  {
-	               errorType_ = "Matrix";
-	               errorMessage_ = MatErr::messages[errorCode]; }
-	LinAlgError ( VecErr::Code errorCode )  {
-	               errorType_ = "Vector";
-	               errorMessage_ = VecErr::messages[errorCode]; }
+	LinAlgError ( MatErr::Code );
+	LinAlgError ( VecErr::Code );
 	
 	// Non-modifying methods
-	void print ( ostream& destination )  {
-	        destination << errorType_ << " : " << errorMessage_ << "\n"; }
+	void print ( ostream& );
 
 protected:
 	// Attributes
@@ -79,3 +70,27 @@ protected:
 	string errorMessage_;
 };
 
+
+
+
+inline
+LinAlgError::LinAlgError ( MatErr::Code errorCode )
+{
+	errorType_ = "Matrix";
+	errorMessage_ = MatErr::messages[errorCode];
+}
+
+
+inline
+LinAlgError::LinAlgError ( VecErr::Code errorCode )
+{
+	errorType_ = "Vector";
+	errorMessage_ = VecErr::messages[errorCode];
+}
+
+
+inline
+void LinAlgError::print ( ostream& destination )
+{
+	destination << errorType_ << " : " << errorMessage_ << "\n";
+}

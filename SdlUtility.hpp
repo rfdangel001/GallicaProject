@@ -2,7 +2,7 @@
 //        FILE : SdlUtility.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 22 2013
-//               Last Entry : July 6 2013
+//               Last Entry : July 8 2013
 // DESCRIPTION : Various tools to use with SDL.
 //     REMARKS : All classes and functions in this library are under the 
 //               namespace 'Sdl'.
@@ -102,7 +102,6 @@ protected:
 	// Graphics attributes
 	SDL_Surface* spriteSheet_;
 	    SDL_Rect clips_[3];
-	
 };
 
 
@@ -110,7 +109,7 @@ class StringInput
 {
 public:
 	// Constructor
-	StringInput ( SDL_Color, SDL_Color, TTF_Font*, int, int, int, int );
+	StringInput ( SDL_Color, SDL_Color, TTF_Font*, int, int, int );
 	
 	// Modifying methods
 	void activate ( );
@@ -375,7 +374,7 @@ void Button::apply ( SDL_Surface* destination )
 
 StringInput::StringInput ( SDL_Color initTextColor, SDL_Color initBackColor,
                            TTF_Font* initDisplayFont, int initPositionX,
-                           int initPositionY, int initWidth, int initHeight )
+                           int initPositionY, int initWidth )
 {
 	text_ = "";
 	
@@ -476,7 +475,9 @@ SDL_Surface* loadImage ( string filename )
 {
 	SDL_Surface* loadedImage = IMG_Load(filename.c_str());
 	
-	SDL_Surface* optimisedImage = SDL_DisplayFormat(loadedImage);
+	SDL_Surface* optimisedImage = SDL_DisplayFormatAlpha(loadedImage);
+	
+	SDL_FreeSurface(loadedImage);
 	
 	return optimisedImage;
 }
@@ -501,6 +502,8 @@ void applyText ( string text, TTF_Font* font, SDL_Surface* destination,
 	                                                textColor);
 	
 	applySurface(textSurface, destination, offsetX, offsetY);
+	
+	SDL_FreeSurface(textSurface);
 }
 
 

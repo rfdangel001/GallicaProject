@@ -2,7 +2,7 @@
 //        FILE : LinearAlgebra.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : April 10 2013
-//               Last entry : July 8 2013
+//               Last entry : July 9 2013
 // DESCRIPTION : Operations on real vectors and matrices.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -661,16 +661,18 @@ Matrix::Proxy Matrix::operator [] ( int row )
 
 Matrix& Matrix::operator = ( const Matrix& rightTerm )
 {
-	for ( int i = 0; i < height_; i ++ )
-		delete []array_[i];
-	delete []array_;
-	
-	height_ = rightTerm.height_;
-	width_ = rightTerm.width_;
-	
-	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ )
-		array_[i] = new double[width_];
+	if ( rightTerm.width_ != width_ or rightTerm.height_ != height_ ) {
+		for ( int i = 0; i < height_; i ++ )
+			delete []array_[i];
+		delete []array_;
+		
+		height_ = rightTerm.height_;
+		width_ = rightTerm.width_;
+		
+		array_ = new double*[height_];
+		for ( int i = 0; i < height_; i ++ )
+			array_[i] = new double[width_];
+	}
 	
 	for ( int i = 0; i < height_; i ++ )
 		for ( int j = 0; j < width_; j ++ )
@@ -683,16 +685,20 @@ Matrix& Matrix::operator = ( const Matrix& rightTerm )
 Matrix& Matrix::operator = ( initializer_list<initializer_list<double>> 
                              valuesList )
 {
-	for ( int i = 0; i < height_; i ++ )
-		delete []array_[i];
-	delete []array_;
-	
-	height_ = valuesList.size();
-	width_ = valuesList.begin()->size();
-	
-	array_ = new double*[height_];
-	for ( int i = 0; i < height_; i ++ )
-		array_[i] = new double[width_];
+	if (
+	int(valuesList.size()) != height_ or
+	int(valuesList.begin()->size()) != width_ ) {
+		for ( int i = 0; i < height_; i ++ )
+			delete []array_[i];
+		delete []array_;
+		
+		height_ = valuesList.size();
+		width_ = valuesList.begin()->size();
+		
+		array_ = new double*[height_];
+		for ( int i = 0; i < height_; i ++ )
+			array_[i] = new double[width_];
+	}
 	
 	int i = 0;
 	for ( initializer_list<double> row : valuesList ) {
@@ -900,10 +906,9 @@ Matrix Matrix::operator / ( double rightScalarTerm ) const
 
 Vector::Vector ( )
 {
-	dimension_ = 1;
+	dimension_ = 0;
 	
-	array_ = new double[1];
-	array_[0] = 0;
+	array_ = NULL;
 }
 
 
@@ -1069,11 +1074,13 @@ double& Vector::operator [] ( int element )
 
 Vector& Vector::operator = ( const Vector& rightTerm )
 {
-	delete []array_;
-	
-	dimension_ = rightTerm.dimension_;
-	
-	array_ = new double[dimension_];
+	if ( rightTerm.dimension_ != dimension_ ) {
+		delete []array_;
+		
+		dimension_ = rightTerm.dimension_;
+		
+		array_ = new double[dimension_];
+	}
 	
 	for ( int i = 0; i < dimension_; i ++ )
 		(*this)[i] = rightTerm[i];
@@ -1084,11 +1091,13 @@ Vector& Vector::operator = ( const Vector& rightTerm )
 
 Vector& Vector::operator = ( initializer_list<double> valuesList )
 {
-	delete []array_;
-	
-	dimension_ = valuesList.size();
-	
-	array_ = new double[dimension_];
+	if ( int(valuesList.size()) != dimension_ ) {
+		delete []array_;
+		
+		dimension_ = valuesList.size();
+		
+		array_ = new double[dimension_];
+	}
 	
 	int i = 0;
 	for ( double element : valuesList ) {

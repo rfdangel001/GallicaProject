@@ -2,7 +2,7 @@
 //        FILE : SdlUtility.hpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 22 2013
-//               Last Entry : July 8 2013
+//               Last Entry : July 9 2013
 // DESCRIPTION : Various tools to use with SDL.
 //     REMARKS : All classes and functions in this library are under the 
 //               namespace 'Sdl'.
@@ -32,7 +32,40 @@ namespace Sdl
 
 //{ Constants
 
+const uint8_t COLLISION_TRUE = exp2(0);
+const uint8_t COLLISION_X_POS = exp2(1);
+const uint8_t COLLISION_X_NEG = exp2(2);
+const uint8_t COLLISION_Y_POS = exp2(3);
+const uint8_t COLLISION_Y_NEG = exp2(4);
 
+//}
+
+
+//{ Structures
+
+struct Rectangle
+{
+	double positionX;
+	double positionY;
+	double width;
+	double height;
+};
+
+
+struct Circle
+{
+	double positionX;
+	double positionY;
+	double radius;
+};
+
+
+struct CollisionData
+{
+	double closestXToFirst;
+	double closestYToFirst;
+	 uint8_t flags;
+};
 
 //}
 
@@ -77,7 +110,7 @@ public:
 	~Button ( );
 	
 	// Modifying methods
-	void handleInput ( Uint8, int, int );
+	void handleInput ( uint8_t, int, int );
 	
 	// Non-modifying methods
 	 int getPositionX ( );
@@ -153,6 +186,8 @@ void applyText ( string, TTF_Font*, SDL_Surface*, int, int,
                  SDL_Color = {255, 255, 255} );
 
 void wait ( int );
+
+CollisionData testCollision ( const Circle&, const Rectangle& );
 
 //}
 
@@ -289,7 +324,7 @@ Button::~Button ( )
 
 //{ Button::Modifying methods
 
-void Button::handleInput ( Uint8 mouseState, int mouseX, int mouseY )
+void Button::handleInput ( uint8_t mouseState, int mouseX, int mouseY )
 {
 	isClicked_ = false;
 	
@@ -486,10 +521,7 @@ SDL_Surface* loadImage ( string filename )
 void applySurface ( SDL_Surface* source, SDL_Surface* destination, int offsetX,
                     int offsetY, SDL_Rect* clip )
 {
-	SDL_Rect offsetPosition;
-	
-	offsetPosition.x = offsetX;
-	offsetPosition.y = offsetY;
+	SDL_Rect offsetPosition = {offsetX, offsetY};
 	
 	SDL_BlitSurface(source, clip, destination, &offsetPosition);
 }
@@ -516,6 +548,47 @@ void wait ( int milliseconds )
 	while ( not end )
 		if ( timer.getTicks() > milliseconds )
 			end = true;
+}
+
+
+CollisionData testCollision ( const Circle& circle, const Rectangle& rectangle )
+{
+	double closestXToCircle;
+	double closestYToCircle;
+	uint8_t collisionFlags = 0;
+	
+	if ( circle.positionX  < rectangle.positionX - rectangle.width / 2 )
+		closestXToCircle = rectangle.positionX - rectangle.width / 2;
+	else if ( circle.positionX > rectangle.positionX + rectangle.width / 2 )
+		closestXToCircle = rectangle.positionX + rectangle.width / 2;
+	else
+		closestXToCircle = circle.positionX;
+	
+	if ( circle.positionY < rectangle.positionY - rectangle.height / 2 )
+		closestYToCircle = rectangle.positionY - rectangle.height / 2;
+	else if ( circle.positionY > rectangle.positionY + rectangle.height / 2 )
+		closestYToCircle = rectangle.positionY + rectangle.height / 2;
+	else
+		closestYToCircle = circle.positionY;
+	
+	double distance = sqrt(pow(circle.positionX - closestXToCircle, 2) +
+	                       pow(circle.positionY - closestYToCircle, 2));
+	
+	if ( distance < circle.radius ) {
+		collisionFlags |= COLLISION_TRUE;
+		
+		if ( circle.positionX < closestXToCircle )
+			collisionFlags |= COLLISION_X_NEG;
+		else if ( circle.positionX > closestXToCircle )
+			collisionFlags |= COLLISION_X_POS;
+		
+		if ( circle.positionY < closestYToCircle )
+			collisionFlags |= COLLISION_Y_NEG;
+		else if ( circle.positionY > closestYToCircle )
+			collisionFlags |= COLLISION_Y_POS;
+	}
+	
+	return {closestXToCircle, closestYToCircle, collisionFlags};
 }
 
 //}

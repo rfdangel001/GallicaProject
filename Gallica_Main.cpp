@@ -2,7 +2,7 @@
 //        FILE : Gallica_Main.cpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 20 2013
-//               Last Entry : July 16 2013
+//               Last Entry : July 15 2013
 // DESCRIPTION : 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -43,12 +43,12 @@ void applyUi ( Player, TTF_Font* );
 
 int main ( int, char** )
 {
-  initialise();
+	initialise();
 	SDL_Surface* floor = Sdl::loadImage("background.png");
 	
 	ofstream logFile("TEST.txt");  // This is used to record the framerate.
 	
-	Player player({50.0, 50.0}, {0.0, 0.0}, 25.0, "player.png", 1, 5, 5, 5,
+	Player ball({50.0, 50.0}, {0.0, 0.0}, 25.0, "Ball.png", 1, 5, 5, 5,
 	            400.0);
 	
 	Obstacle* allObstacles = new Obstacle[2];
@@ -67,7 +67,7 @@ int main ( int, char** )
 	uint8_t mouseState;
 	
 	Sdl::Button startButton("StartButton.png", 500, 400, 200, 50);
-	TTF_Font* titleFont = TTF_OpenFont("prstartk.ttf", 40);
+	TTF_Font* titleFont = TTF_OpenFont("TestFont.ttf", 40);
 	
 	// This is the menu loop.
 	bool end = false;
@@ -84,7 +84,7 @@ int main ( int, char** )
 		
 		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
 		
-		Sdl::applyText("Hello, World!", titleFont, screen, 450, 300,
+		Sdl::applyText("Hello, World!", titleFont, screen, 350, 300,
 		               {255, 15, 15});
 		
 		startButton.apply(screen);
@@ -92,7 +92,7 @@ int main ( int, char** )
 		SDL_Flip(screen);
 	}
 	
-	TTF_Font* uiFont = TTF_OpenFont("prstartk.ttf", 20);
+	TTF_Font* uiFont = TTF_OpenFont("TestFont.ttf", 20);
 	
 	Sdl::Timer framerateTimer;
 	
@@ -107,24 +107,24 @@ int main ( int, char** )
 		
 		keyState = (bool*)(SDL_GetKeyState(NULL));
 		
-		player.handleInput(keyState);
-		player.updatePosition();
-		player.handleBorderCollisions();
+		ball.handleInput(keyState);
+		ball.updatePosition();
+		ball.handleBorderCollisions();
 		
-		player.handleObstacleCollisions(allObstacles);
+		ball.handleObstacleCollisions(allObstacles);
 		
 		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 75, 75, 75));
 		
-		applyBackground(floor, player.getPosition());
+		applyBackground(floor, ball.getPosition());
 		
-		player.apply(screen, 0);
+		ball.apply(screen, 0);
 		
-		applyUi(player, uiFont);
+		applyUi(ball, uiFont);
 		
 		SDL_Flip(screen);
 		
 		logFile << framerateTimer.getTicks() << " ms" << "\n"
-		        << player.getVelocity()[0] << ", " << player.getVelocity()[1]
+		        << ball.getVelocity()[0] << ", " << ball.getVelocity()[1]
 		        << "\n\n";
 		
 		Sdl::wait(1000 / SCREEN_FRAMERATE - framerateTimer.getTicks());

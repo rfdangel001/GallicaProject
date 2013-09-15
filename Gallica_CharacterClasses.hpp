@@ -2,7 +2,7 @@
 //        FILE : Gallica_CharacterClasses.hpp
 //      AUTHOR : Charles Hosson & Rada Florin-Daniel
 //        DATE :   Creation : June 22 2013
-//               Last Entry : July 16 2013
+//               Last Entry : August 10 2013
 // DESCRIPTION : Defines the classes for the characters and scoreboard
 //               in the Gallica project.
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,8 +35,9 @@ using namespace std;
 #include "SDL/SDL_ttf.h"
 
 #include "LinearAlgebra.hpp"
+#include "SdlUtility.hpp"
 
-#include "Gallica_Constants.hpp"
+#include "Gallica_Globals.hpp"
 //TODO: #include "powerUps.hpp"
 
 
@@ -44,6 +45,7 @@ using namespace std;
 
 // Forward declarations
 class ScoreBoard; class Character; class Player; class Obstacle;
+Vector vec1 = {1.0, 2.0};
 
 
 // scoreboard class just basic for now
@@ -78,55 +80,72 @@ private:
 class Character
 {
 public:
+	// Constructor
+	Character ( );
+	
 	// Modifying methods
 	void updatePosition ( );
 	
 	// Non-modifying methods
-	Vector getPosition ( );
-	Vector getVelocity ( );
-	double getRadius ( );
-	   int getHealth ( );
-	   int getArmor ( );
-	   int getStamina ( );
+	Vector getPosition ( ) const;
+	Vector getVelocity ( ) const;
+	double getRadius ( ) const;
+	   int getHealth ( ) const;
+	   int getArmor ( ) const;
+	   int getStamina ( ) const;
 
 protected:
 	// Space attributes
 	Vector position_;
 	Vector velocity_;
 	double radius_;
-
+	double maxSpeed_;
+	
 	// Graphics attributes
 	SDL_Surface* spriteSheet_;
 	   SDL_Rect* clips_;
 	
 	// Gameplay attributes
-	   int healthPoints_;
-	   int armorPoints_;
-	   int staminaPoints_;
-	
-	// 
-	double maxSpeed_;
+	int healthPoints_;
+	int armorPoints_;
+	int staminaPoints_;
 };
 
 
 class Player : public Character
 {
 public:
+	// Sprite clipping constants
+	static constexpr int CLIPS_COUNT = 1;
+	static constexpr int CLIP_DEFAULT = 0;
+	
+	// Default attributes constants
+	static constexpr    int INIT_HEALTH = 5;
+	static constexpr    int INIT_ARMOR = 5;
+	static constexpr    int INIT_STAMINA = 5;
+	static constexpr double INIT_MAX_SPEED = 400.0;
+	static constexpr double INIT_RADIUS = 25.0;
+	
+	static constexpr double ACCELERATION = 4.0;
+	static constexpr double DECELERATION = 1.5;
+	
 	// Constructor and destructor
-	Player ( Vector, Vector, double, string, int, int, int, int, double );
+	Player ( ) {};
+	Player ( Vector, Vector, double, string );
+	~Player ( );
 	
 	// Modifying methods
-	void handleInput ( bool* );
-	void handleBorderCollisions ( );
+	void handleInput ( uint8_t* );
+	void handleBorderCollisions ( double, double );
 	void handleObstacleCollisions ( Obstacle* );
 	
 	void removeNullPowerUps ( );
 	
 	// Non-modifying method
-	void apply ( SDL_Surface*, int );
-
-protected:
+	void apply ( int );
 	
+	// Modifying operators
+	Player& operator = ( const Player& );
 };
 
 
@@ -134,7 +153,7 @@ class Obstacle
 {
 public:
 	// Static attribute
-	static int counter;
+	static int count;
 	
 	// Constructor and destructor
 	Obstacle ( );
@@ -162,9 +181,25 @@ protected:
 	// Graphics attributes
 	SDL_Surface* spriteSheet_;
 };
-int Obstacle::counter = 0;
+int Obstacle::count = 0;
 
 
+
+
+Character::Character ( )
+{
+	position_ = {0, 0};
+	velocity_ = {0, 0};
+	radius_ = 0.0;
+	maxSpeed_ = 0.0;
+	
+	spriteSheet_ = NULL;
+	clips_ = NULL;
+	
+	healthPoints_ = 0;
+	armorPoints_ = 0;
+	staminaPoints_ = 0;
+}
 
 
 void Character::updatePosition ( )
@@ -179,42 +214,42 @@ void Character::updatePosition ( )
 
 
 inline
-Vector Character::getPosition ( )
+Vector Character::getPosition ( ) const
 {
 	return position_;
 }
 
 
 inline
-Vector Character::getVelocity ( )
+Vector Character::getVelocity ( ) const
 {
 	return velocity_;
 }
 
 
 inline
-double Character::getRadius ( )
+double Character::getRadius ( ) const
 {
 	return radius_;
 }
 
 
 inline
-int Character::getHealth ( )
+int Character::getHealth ( ) const
 {
 	return healthPoints_;
 }
 
 
 inline
-int Character::getArmor ( )
+int Character::getArmor ( ) const
 {
 	return armorPoints_;
 }
 
 
 inline
-int Character::getStamina ( )
+int Character::getStamina ( ) const
 {
 	return staminaPoints_;
 }
@@ -223,77 +258,84 @@ int Character::getStamina ( )
 
 
 Player::Player ( Vector position, Vector velocity, double radius,
-                 string imageFileName, int clipsNumber, int healthPoints,
-                 int armorPoints, int staminaPoints, double maxSpeed )
+                 string imageFileName )
 {
 	position_ = position;
 	velocity_ = velocity;
-	radius_ = radius;
+	radius_ = INIT_RADIUS;
 	
 	spriteSheet_ = Sdl::loadImage(imageFileName);
 	
-	clips_ = new SDL_Rect[clipsNumber];
-	for ( int i = 0; i < clipsNumber; i ++ )
+	clips_ = new SDL_Rect[CLIPS_COUNT];
+	for ( int i = 0; i < CLIPS_COUNT; i ++ )
 		clips_[i] = {0, i * 2 * radius_, 2 * radius_, 2 * radius_};
 	
-	healthPoints_ = healthPoints;
-	armorPoints_ = armorPoints;
-	staminaPoints_ = staminaPoints;
+	healthPoints_ = INIT_HEALTH;
+	armorPoints_ = INIT_ARMOR;
+	staminaPoints_ = INIT_STAMINA;
 	
-	maxSpeed_ = maxSpeed;
+	maxSpeed_ = INIT_MAX_SPEED;
 }
 
 
-void Player::handleInput ( bool* keyState )
+Player::~Player ( )
+{
+	SDL_FreeSurface(spriteSheet_);
+	
+	delete []clips_;
+}
+
+
+void Player::handleInput ( uint8_t* keyState )
 {
 	if ( keyState[SDLK_UP] )
-		velocity_[1] -= 3 * maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[1] -= ACCELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 	if ( keyState[SDLK_DOWN] )
-		velocity_[1] += 3 * maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[1] += ACCELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 	if ( keyState[SDLK_RIGHT] )
-		velocity_[0] += 3 * maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[0] += ACCELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 	if ( keyState[SDLK_LEFT] )
-		velocity_[0] -= 3 * maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[0] -= ACCELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 	
 	if ( not keyState[SDLK_UP] and velocity_[1] < 0.0 ) {
-		velocity_[1] += maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[1] += DECELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 		if ( velocity_[1] > 0.0 )
 			velocity_[1] = 0.0;
 	}
 	if ( not keyState[SDLK_DOWN] and velocity_[1] > 0.0 ) {
-		velocity_[1] -= maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[1] -= DECELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 		if ( velocity_[1] < 0.0 )
 			velocity_[1] = 0.0;
 	}
 	if ( not keyState[SDLK_RIGHT] and velocity_[0] > 0.0 ) {
-		velocity_[0] -= maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[0] -= DECELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 		if ( velocity_[0] < 0.0 )
 			velocity_[0] = 0.0;
 	}
 	if ( not keyState[SDLK_LEFT] and velocity_[0] < 0.0 ) {
-		velocity_[0] += maxSpeed_ / SCREEN_FRAMERATE;
+		velocity_[0] += DECELERATION * maxSpeed_ / SCREEN_FRAMERATE;
 		if ( velocity_[0] > 0.0 )
 			velocity_[0] = 0.0;
 	}
 }
 
 
-void Player::handleBorderCollisions ( )
+void Player::handleBorderCollisions ( double levelWidth, double levelHeight )
 {
 	if ( position_[0] - radius_ <= 0.0 ) {
 		position_[0] = 0.0 + radius_;
 		velocity_[0] = 0.0;
 	}
-	if ( position_[0] + radius_ >= LEVEL_WIDTH ) {
-		position_[0] = LEVEL_WIDTH - radius_;
+	if ( position_[0] + radius_ >= levelWidth ) {
+		position_[0] = levelWidth - radius_;
 		velocity_[0] = 0.0;
 	}
 	if ( position_[1] - radius_ <= 0.0 ) {
 		position_[1] = 0.0 + radius_;
 		velocity_[1] = 0.0;
 	}
-	if ( position_[1] + radius_ >= LEVEL_HEIGHT ) {
-		position_[1] = LEVEL_HEIGHT - radius_;
+	if ( position_[1] + radius_ >= levelHeight ) {
+		position_[1] = levelHeight - radius_;
 		velocity_[1] = 0.0;
 	}
 }
@@ -301,26 +343,26 @@ void Player::handleBorderCollisions ( )
 
 void Player::handleObstacleCollisions ( Obstacle* obstacles )
 {
-	for ( int i = 0; i < Obstacle::counter; i ++ ) {
+	for ( int i = 0; i < Obstacle::count; i ++ ) {
 		Sdl::CollisionData results;
 		results = testCollision({position_[0], position_[1], radius_},
 		                        obstacles[i].getRectangle());
 		
-		if ( results.flags bitand Sdl::COLLISION_TRUE ) {
+		if ( results.flags & Sdl::COLLISION_TRUE ) {
 			Vector distance = position_ - Vector({results.closestXToFirst,
 			                                     results.closestYToFirst});
 			distance.normalise();
 			
-			position_ = Vector({results.closestXToFirst, results.closestYToFirst}) +
-			            distance * radius_;
+			position_ = Vector({results.closestXToFirst,
+			                   results.closestYToFirst}) + distance * radius_;
 			
 			if (
-			results.flags bitand Sdl::COLLISION_X_POS or
-			results.flags bitand Sdl::COLLISION_X_NEG )
+			results.flags & Sdl::COLLISION_X_POS or
+			results.flags & Sdl::COLLISION_X_NEG )
 				velocity_[0] = 0.0;
 			else if (
-			results.flags bitand Sdl::COLLISION_Y_POS or
-			results.flags bitand Sdl::COLLISION_Y_NEG )
+			results.flags & Sdl::COLLISION_Y_POS or
+			results.flags & Sdl::COLLISION_Y_NEG )
 				velocity_[1] = 0.0;
 		}
 	}
@@ -328,13 +370,35 @@ void Player::handleObstacleCollisions ( Obstacle* obstacles )
 
 
 inline
-void Player::apply ( SDL_Surface* destination, int clipIndex )
+void Player::apply ( int clipIndex )
 {
-	Sdl::applySurface(spriteSheet_, destination, SCREEN_WIDTH / 2 - radius_,
+	Sdl::applySurface(spriteSheet_, screen, SCREEN_WIDTH / 2 - radius_,
 	                  (SCREEN_HEIGHT + PANEL_HEIGHT) / 2 - radius_,
 	                  &clips_[clipIndex]);
 }
 
+
+Player& Player::operator = ( const Player& model )
+{
+	position_ = model.position_;
+	velocity_ = model.velocity_;
+	radius_ = model.radius_;
+	
+	spriteSheet_ = SDL_DisplayFormatAlpha(model.spriteSheet_);
+	
+	delete[] clips_;
+	clips_ = new SDL_Rect[CLIPS_COUNT];
+	for ( int i = 0; i < CLIPS_COUNT; i ++ )
+		clips_[i] = model.clips_[i];
+	
+	healthPoints_ = model.healthPoints_;
+	armorPoints_ = model.armorPoints_;
+	staminaPoints_ = model.staminaPoints_;
+	
+	maxSpeed_ = model.maxSpeed_;
+	
+	return *this;
+}
 
 
 
@@ -346,7 +410,7 @@ Obstacle::Obstacle ( )
 	
 	spriteSheet_ = NULL;
 	
-	counter ++;
+	count ++;
 }
 
 
@@ -359,7 +423,7 @@ Obstacle::Obstacle ( string imageFileName, Vector initPosition,
 	
 	spriteSheet_ = Sdl::loadImage(imageFileName);
 	
-	counter ++;
+	count ++;
 }
 
 
@@ -368,7 +432,7 @@ Obstacle::~Obstacle ( )
 {
 	SDL_FreeSurface(spriteSheet_);
 	
-	counter --;
+	count --;
 }
 
 

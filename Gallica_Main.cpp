@@ -2,7 +2,7 @@
 //        FILE : Gallica_Main.cpp
 //      AUTHOR : Charles Hosson
 //        DATE :   Creation : June 20 2013
-//               Last Entry : July 15 2013
+//               Last Entry : August 7 2013
 // DESCRIPTION : 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -12,7 +12,6 @@ using namespace std;
 #include <string>
 #include <cmath>
 #include <fstream>
-#include <iomanip>
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_image.h"
@@ -21,22 +20,14 @@ using namespace std;
 #include "SdlUtility.hpp"
 #include "LinearAlgebra.hpp"
 
-#include "Gallica_Constants.hpp"
+#include "Gallica_Globals.hpp"
 #include "Gallica_CharacterClasses.hpp"
-
-
-
-
-SDL_Surface* screen = NULL;
+#include "Gallica_StateMachine.hpp"
 
 
 
 
 void initialise ( );
-
-void applyBackground ( SDL_Surface*, Vector );
-
-void applyUi ( Player, TTF_Font* );
 
 
 
@@ -44,91 +35,35 @@ void applyUi ( Player, TTF_Font* );
 int main ( int, char** )
 {
 	initialise();
-	SDL_Surface* floor = Sdl::loadImage("background.png");
 	
-	ofstream logFile("TEST.txt");  // This is used to record the framerate.
+	GameState* activeState = NULL;
 	
-	Player ball({50.0, 50.0}, {0.0, 0.0}, 25.0, "Ball.png", 1, 5, 5, 5,
-	            400.0);
+	setNextState(STATE_INTRO);
 	
-	Obstacle* allObstacles = new Obstacle[2];
-	
-	allObstacles[0] = Obstacle("Obstacle.png", {500.0, 500.0}, 200.0, 200.0);
-	allObstacles[1] = Obstacle("Obstacle.png", {1000.0, 1000.0}, 200.0, 200.0);
-	
-	// We apply the obstacle images before the game loop begins because they
-	// won't move at anytime. 
-	for ( int i = 0; i < Obstacle::counter; i ++ )
-		allObstacles[i].apply(floor);
-	
-	SDL_Event input;
-	bool* keyState = NULL;
-	int mouseX, mouseY;
-	uint8_t mouseState;
-	
-	Sdl::Button startButton("StartButton.png", 500, 400, 200, 50);
-	TTF_Font* titleFont = TTF_OpenFont("TestFont.ttf", 40);
-	
-	// This is the menu loop.
-	bool end = false;
-	while ( not end ) {
-		SDL_PollEvent(&input);
-		if ( input.type == SDL_QUIT )
-			end = true;
-		
-		mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-		
-		startButton.handleInput(mouseState, mouseX, mouseY);
-		if ( startButton.isClicked() )
-			end = true;
-		
-		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
-		
-		Sdl::applyText("Hello, World!", titleFont, screen, 350, 300,
-		               {255, 15, 15});
-		
-		startButton.apply(screen);
-		
-		SDL_Flip(screen);
+	try {
+		while ( GameState::currentStateCode != STATE_EXIT ) {
+			delete activeState;
+			activeState = getNewGameState();
+			
+			activeState->loadFiles();
+			
+			activeState->executeLoop();
+		}
+	} catch ( LinAlgError error ) {
+		ofstream errLog("GallicaLog.txt");
+		error.print(errLog);
+		errLog.close();
 	}
 	
-	TTF_Font* uiFont = TTF_OpenFont("TestFont.ttf", 20);
+	TTF_Font* goodbyeFont = TTF_OpenFont("TestFont.ttf", 40);
 	
-	Sdl::Timer framerateTimer;
+	SDL_FillRect(screen, NULL, 0);
 	
-	// This is the game loop.
-	end = false;
-	while ( not end ) {
-		framerateTimer.start();
-		
-		SDL_PollEvent(&input);
-		if ( input.type == SDL_QUIT )
-			end = true;
-		
-		keyState = (bool*)(SDL_GetKeyState(NULL));
-		
-		ball.handleInput(keyState);
-		ball.updatePosition();
-		ball.handleBorderCollisions();
-		
-		ball.handleObstacleCollisions(allObstacles);
-		
-		SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 75, 75, 75));
-		
-		applyBackground(floor, ball.getPosition());
-		
-		ball.apply(screen, 0);
-		
-		applyUi(ball, uiFont);
-		
-		SDL_Flip(screen);
-		
-		logFile << framerateTimer.getTicks() << " ms" << "\n"
-		        << ball.getVelocity()[0] << ", " << ball.getVelocity()[1]
-		        << "\n\n";
-		
-		Sdl::wait(1000 / SCREEN_FRAMERATE - framerateTimer.getTicks());
-	}
+	Sdl::applyText("Goodbye", goodbyeFont, screen, 500, 300);
+	
+	SDL_Flip(screen);
+	
+	Sdl::wait(1000);
 	
 	SDL_Quit();
 	
@@ -148,29 +83,5 @@ void initialise ( )
 	                          SDL_HWSURFACE);
 	
 	SDL_WM_SetCaption("Gallica", NULL);
-}
-
-
-void applyBackground ( SDL_Surface* backgroundImage, Vector playerPosition )
-{
-	SDL_Rect clip = {playerPosition[0] - SCREEN_WIDTH / 2,
-	                 playerPosition[1] - (SCREEN_HEIGHT + PANEL_HEIGHT) / 2,
-	                 SCREEN_WIDTH, SCREEN_HEIGHT};
-	
-	Sdl::applySurface(backgroundImage, screen, 0, 0, &clip);
-}
-
-
-void applyUi ( Player player, TTF_Font* uiFont)
-{
-	SDL_Rect panel = {0, 0, SCREEN_WIDTH, PANEL_HEIGHT};
-	SDL_FillRect(screen, &panel, SDL_MapRGB(screen->format, 10, 10, 10));
-	
-	Sdl::applyText("HP" + string(player.getHealth(), '|'), uiFont,
-	               screen, 20, 20, {255, 10, 10});
-	Sdl::applyText("AP" + string(player.getArmor(), '|'), uiFont,
-	               screen, 220, 20, {80, 80, 255});
-	Sdl::applyText("SP" + string(player.getStamina(), '|'), uiFont,
-	               screen, 420, 20, {10, 255, 10});
 }
 

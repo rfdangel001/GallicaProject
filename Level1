@@ -1,0 +1,25 @@
+[Level]
+width = 2000
+height = 2000
+floorImageFilename = Background.png
+maxAiCount = 5
+
+[Player]
+initPosition = 50.0 50.0
+initVelocity = 0.0 0.0
+spriteSheetFilename = Ball.png
+
+[Obstacles]
+numberOfObstacles = 2
+
+[Obstacle1]
+imageFileName = Obstacle.png
+position = 500.0 500.0
+width = 200.0
+height = 200.0
+
+[Obstacle2]
+imageFileName = Obstacle.png
+position = 1000.0 1000.0
+width = 200.0
+height = 200.0
